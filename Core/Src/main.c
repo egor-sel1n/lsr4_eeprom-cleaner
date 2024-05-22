@@ -62,6 +62,106 @@ static void MX_USART3_UART_Init(void);
 /* USER CODE BEGIN 0 */
 
 
+//-------------------------------------
+void read_eeprom()
+{
+
+uint16_t wmsg[16];
+uint16_t rmsg[16];
+memset(wmsg, 0, 16);
+// HAL expects address to be shifted one bit to the left
+uint16_t devAddr = (0xA0 << 1);
+uint16_t memAddr = 0x0100;
+HAL_StatusTypeDef status;
+
+	    HAL_I2C_Mem_Write(&hi2c1, devAddr, memAddr, I2C_MEMADD_SIZE_16BIT, (uint8_t*)wmsg, sizeof(wmsg), HAL_MAX_DELAY);
+
+	    for(;;)
+	    {
+	        status = HAL_I2C_IsDeviceReady(&hi2c1, devAddr, 1, HAL_MAX_DELAY);
+	        if(status == HAL_OK)
+	            break;
+	    }
+
+	    HAL_I2C_Mem_Read(&hi2c1, devAddr, memAddr, I2C_MEMADD_SIZE_16BIT, (uint8_t*)rmsg, sizeof(rmsg), HAL_MAX_DELAY);
+
+	    HAL_UART_Transmit(&huart3, rmsg, sizeof(rmsg), 1000);
+
+
+
+	    rmsg[0]=13;
+
+
+		HAL_UART_Transmit(&huart3, rmsg, 1, 1000);
+		HAL_Delay(1000);
+}
+
+
+
+//-------------------------------------
+void check_eeprom ()
+{
+
+#define 	BUFFER_SIZE   	16
+#define 	MAX_ADDR 		256
+
+uint8_t dock_in[BUFFER_SIZE];
+uint8_t dock_out[BUFFER_SIZE];
+
+
+
+
+		HAL_GPIO_WritePin(D6_GPIO_Port, D6_Pin, SET);
+		HAL_Delay(5000);
+
+		HAL_GPIO_WritePin(D6_GPIO_Port, D6_Pin, RESET);
+		HAL_Delay(1000);
+
+		uint16_t i=0x00;
+
+		for(i=0; i<BUFFER_SIZE; i++)
+		{
+			dock_in[i]=0x00;
+			dock_out[i]=2;
+		}
+
+
+		//-------general cycle------
+		for(i=0x00; i<MAX_ADDR; i++)
+		{
+
+			for(i=0; i<BUFFER_SIZE; i++)
+			{
+				//dock_in[i]=0x00;
+				dock_out[i]=2;
+			}
+
+
+			//HAL_I2C_Mem_Write(&hi2c1, 0xA0, i, I2C_MEMADD_SIZE_8BIT, dock_in, BUFFER_SIZE, 1000);
+			//HAL_Delay(1000);
+			HAL_I2C_Mem_Read(&hi2c1, 0xA0, i, I2C_MEMADD_SIZE_8BIT, dock_out, BUFFER_SIZE, 1000);
+			HAL_Delay(1000);
+			HAL_UART_Transmit(&huart3, dock_out, BUFFER_SIZE, 1000);
+
+			dock_out[1]=i;
+			dock_out[2]=13;
+			dock_out[0]=13;
+
+			HAL_UART_Transmit(&huart3, dock_out, 3, 1000);
+			HAL_Delay(1000);
+
+		}
+
+		HAL_Delay(1500);
+
+		HAL_GPIO_WritePin(D6_GPIO_Port, D6_Pin, SET);
+
+		HAL_Delay(1500);
+
+
+
+}
+
 
 
 //-------------------------------------
@@ -87,8 +187,8 @@ uint8_t dock_out[BUFFER_SIZE];
 
 		for(i=0; i<BUFFER_SIZE; i++)
 		{
-			dock_in[i]=0xFF;
-			dock_out[i]=0;
+			dock_in[i]=0x00;
+			dock_out[i]=2;
 		}
 
 
@@ -96,9 +196,9 @@ uint8_t dock_out[BUFFER_SIZE];
 		for(i=0x00; i<MAX_ADDR; i++)
 		{
 			HAL_I2C_Mem_Write(&hi2c1, 0xA0, i, I2C_MEMADD_SIZE_8BIT, dock_in, BUFFER_SIZE, 1000);
-			HAL_Delay(500);
-
+			HAL_Delay(1000);
 			HAL_I2C_Mem_Read(&hi2c1, 0xA0, i, I2C_MEMADD_SIZE_8BIT, dock_out, BUFFER_SIZE, 1000);
+			HAL_Delay(1000);
 			HAL_UART_Transmit(&huart3, dock_out, BUFFER_SIZE, 1000);
 
 			dock_out[1]=i;
@@ -189,7 +289,7 @@ int main(void)
 	HAL_GPIO_WritePin(D5_GPIO_Port, D5_Pin, RESET);
 	HAL_GPIO_WritePin(D6_GPIO_Port, D6_Pin, RESET);
 	HAL_GPIO_WritePin(D7_GPIO_Port, D7_Pin, RESET);
-	HAL_Delay(2000);
+	HAL_Delay(4000);
 
 	HAL_GPIO_WritePin(D5_GPIO_Port, D5_Pin, SET);
 	HAL_GPIO_WritePin(D6_GPIO_Port, D6_Pin, SET);
@@ -197,8 +297,9 @@ int main(void)
 	HAL_Delay(1000);
 
 
-	erase_eeprom();
+	//erase_eeprom();
 
+	//check_eeprom();
 
 
 	HAL_GPIO_WritePin(D5_GPIO_Port, D5_Pin, RESET);
@@ -223,7 +324,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-
+	  read_eeprom();
 
   }
   /* USER CODE END 3 */
