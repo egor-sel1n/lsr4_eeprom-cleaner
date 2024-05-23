@@ -68,32 +68,52 @@ void read_eeprom()
 
 uint16_t wmsg[16];
 uint16_t rmsg[16];
-memset(wmsg, 0, 16);
+memset(wmsg, 0, sizeof(wmsg));
 // HAL expects address to be shifted one bit to the left
-uint16_t devAddr = (0xA0 << 1);
+uint16_t devAddr = (0xA0); //вот этот
 uint16_t memAddr = 0x0100;
 HAL_StatusTypeDef status;
 
-	    HAL_I2C_Mem_Write(&hi2c1, devAddr, memAddr, I2C_MEMADD_SIZE_16BIT, (uint8_t*)wmsg, sizeof(wmsg), HAL_MAX_DELAY);
+	    //HAL_I2C_Mem_Write(&hi2c1, devAddr, memAddr, I2C_MEMADD_SIZE_16BIT, (uint8_t*)wmsg, sizeof(wmsg), HAL_MAX_DELAY);
 
-	    for(;;)
+
+for(int i=0; i<256; i++)
 	    {
-	        status = HAL_I2C_IsDeviceReady(&hi2c1, devAddr, 1, HAL_MAX_DELAY);
-	        if(status == HAL_OK)
-	            break;
+
+	    	 HAL_I2C_Mem_Write(&hi2c1, devAddr, i*256, I2C_MEMADD_SIZE_16BIT, (uint8_t*)wmsg, sizeof(wmsg), HAL_MAX_DELAY);
+	    	 for(;;)
+	    	 	    {
+	    	 	        status = HAL_I2C_IsDeviceReady(&hi2c1, devAddr, 1, HAL_MAX_DELAY);
+	    	 	        if(status == HAL_OK)
+	    	 	            break;
+	    	 	    }
+
 	    }
 
-	    HAL_I2C_Mem_Read(&hi2c1, devAddr, memAddr, I2C_MEMADD_SIZE_16BIT, (uint8_t*)rmsg, sizeof(rmsg), HAL_MAX_DELAY);
 
-	    HAL_UART_Transmit(&huart3, rmsg, sizeof(rmsg), 1000);
+	    for(int i=0; i<256; i++)
+	    {
+	    	char buffer[10];
+	    	sprintf(buffer, "%d\r\n", i);
+	    	//HAL_UART_Transmit(&huart3, buffer, sizeof(buffer), 1000);
+
+	    	rmsg[0]=13;
+
+	    		//		HAL_UART_Transmit(&huart3, rmsg, 1, 1000);
+	    				//HAL_Delay(1000);
+	    	 HAL_I2C_Mem_Read(&hi2c1, devAddr, i*256, I2C_MEMADD_SIZE_16BIT, (uint8_t*)rmsg, sizeof(rmsg), HAL_MAX_DELAY);
+
+	    	 HAL_UART_Transmit(&huart3, rmsg, sizeof(rmsg), 1000);
+
+			rmsg[0]=13;
+
+			HAL_UART_Transmit(&huart3, rmsg, 1, 1000);
+			//HAL_Delay(1000);
+	    }
 
 
 
-	    rmsg[0]=13;
 
-
-		HAL_UART_Transmit(&huart3, rmsg, 1, 1000);
-		HAL_Delay(1000);
 }
 
 
@@ -296,6 +316,8 @@ int main(void)
 	HAL_GPIO_WritePin(D7_GPIO_Port, D7_Pin, SET);
 	HAL_Delay(1000);
 
+	  read_eeprom();
+
 
 	//erase_eeprom();
 
@@ -306,6 +328,7 @@ int main(void)
 	HAL_GPIO_WritePin(D6_GPIO_Port, D6_Pin, RESET);
 	HAL_GPIO_WritePin(D7_GPIO_Port, D7_Pin, RESET);
 	HAL_Delay(2000);
+
 	HAL_GPIO_WritePin(D5_GPIO_Port, D5_Pin, SET);
 	HAL_GPIO_WritePin(D6_GPIO_Port, D6_Pin, SET);
 	HAL_GPIO_WritePin(D7_GPIO_Port, D7_Pin, SET);
@@ -324,7 +347,6 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  read_eeprom();
 
   }
   /* USER CODE END 3 */
